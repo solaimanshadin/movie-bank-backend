@@ -21,12 +21,50 @@ client.connect((err) => {
     if (err) {
         console.log("DB Connect Error", err)
     } else {
+
+        const getUser = (req) => {
+            const token = req.headers.authorization;
+
+            admin
+            .auth()
+            .verifyIdToken(token)
+            .then((decodedToken) => {
+                console.log(decodedToken)
+                return decodedToken
+                // ...
+            })
+        }
+
+        const authCheck = (req, res, next) => {
+            const token = req.headers.authorization;
+            console.log(token)
+            if(!token) {
+                res.status(401).json({message: "Unauthorized !"})
+            }else{
+                admin
+                .auth()
+                .verifyIdToken(token)
+                .then((decodedToken) => {
+                    console.log(decodedToken)
+                    next()
+                    // ...
+                })
+                .catch((error) => {
+                    res.status(401).json({message: "Unauthorized !"})
+                });
+            }
+
+            
+        }
         const Booking = client.db('movie_bank').collection('bookings');
+
+        
 
         app.get('/', (req, res, next) => {
             res.json({ message: "Hello world!" })
         })
 
+        
         app.post('/book', (req, res, next) => {
             const data = req.body;
             Booking.insertOne(data)
@@ -44,24 +82,15 @@ client.connect((err) => {
             })
         });
 
-        app.get('/bookings', (req, res) => {
+        app.get('/bookings', authCheck,  (req, res, next) => {
             const query = req.query;
-            const token = req.headers.authorization;
-            admin
-                .auth()
-                .verifyIdToken(token)
-                .then((decodedToken) => {
-                    console.log(decodedToken)
-                    // ...
-                })
-                .catch((error) => {
-                    // Handle error
-                });
-
-
+            // const user = getUser(req);
+            // console.log(user)
+            
             Booking.find(query).toArray((err, data) => {
                 res.json({ data });
             })
+            next()
         });
 
 
