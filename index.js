@@ -6,6 +6,13 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 app.use(express.json());
 app.use(cors());
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./firebaseCred.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 const uri = 'mongodb://localhost:27017';
 const client = new MongoClient(uri, { useUnifiedTopology: true });
@@ -39,7 +46,19 @@ client.connect((err) => {
 
         app.get('/bookings', (req, res) => {
             const query = req.query;
-            console.log(query)
+            const token = req.headers.authorization;
+            admin
+                .auth()
+                .verifyIdToken(token)
+                .then((decodedToken) => {
+                    console.log(decodedToken)
+                    // ...
+                })
+                .catch((error) => {
+                    // Handle error
+                });
+
+
             Booking.find(query).toArray((err, data) => {
                 res.json({ data });
             })
