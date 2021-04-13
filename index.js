@@ -25,13 +25,11 @@ client.connect((err) => {
         const getUser = (req) => {
             const token = req.headers.authorization;
 
-            admin
+            return admin
             .auth()
             .verifyIdToken(token)
             .then((decodedToken) => {
-                console.log(decodedToken)
                 return decodedToken
-                // ...
             })
         }
 
@@ -56,6 +54,7 @@ client.connect((err) => {
 
             
         }
+
         const Booking = client.db('movie_bank').collection('bookings');
 
         
@@ -73,24 +72,26 @@ client.connect((err) => {
             })
         });
 
-        app.delete('/booking/:id', (req, res, next) => {
+        app.delete('/booking/:id', authCheck, (req, res, next) => {
             const id = ObjectID(req.params.id);
-
-            Booking.findOneAndDelete({_id: id})
+            
+            Booking.findOneAndDelete({_id: id, bookedBy: user.email})
             .then(data => {
                 res.json({success: !!data.value})
             })
         });
 
-        app.get('/bookings', authCheck,  (req, res, next) => {
-            const query = req.query;
-            // const user = getUser(req);
-            // console.log(user)
+        app.get('/bookings', authCheck,  async (req, res, next) => {
             
-            Booking.find(query).toArray((err, data) => {
+            const user = await getUser(req);
+            console.log(user)
+            
+            Booking.find({bookedBy: user?.email}).toArray((err, data) => {
                 res.json({ data });
             })
-            next()
+
+            // next()   // This next call was the case of app crash
+
         });
 
 
